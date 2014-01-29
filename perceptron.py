@@ -1,7 +1,11 @@
 # Neural network 
 # includes perceptron and more general neural net
 
+import math
 import random
+
+def sigmoid(x):
+  return 1.0 / (1 + math.exp(-x))
 
 class NNode:
   weights = []
@@ -18,10 +22,7 @@ class NNode:
     for i in xrange(self.num_w - 1):
       sum += inputs[i] * self.weights[i]
     sum += self.weights[self.num_w-1]
-    if sum > 0:
-      return 1
-    else:
-      return -1
+    return sigmoid(sum)
   def adjust(self, adjustment, inputs):
     for i in xrange(self.num_w - 1):
       self.weights[i] += adjustment * inputs[i]
@@ -36,11 +37,12 @@ class Perceptron:
     self.num_w = num_inputs + 1
     self.nodes = [NNode(self.num_w)]
   def guess(self, inputs):
-    return self.nodes[0].feedforward(inputs)
+    return self.nodes[0].feedforward(inputs) > 0
   def train(self, count, oracle):
     c = 0.01
     for i in xrange(count):
-      inputs = [random.randint(0,999) for r in xrange(self.num_w)]
+      inputs = [random.randint(0,99) for r in xrange(self.num_w)]
+      print "  inputs = "+repr(inputs)
       g = self.guess(inputs)
       err = oracle(inputs) - g
       for n in self.nodes:
@@ -60,18 +62,20 @@ class Perceptron:
     return repr(self.nodes)
 
 class NeuralNet: #currently not working
-  num_w = 0
   levels = [] # array of array representing nodes
-  to = {} # dictionary of dictionaries of arrays representing where output flows to
-          # eg. {1: {4: [0,2]}} means the 4th node in layer 1 connects to 0th and 2nd node in layer 2
-  fro = {} # inverse of to
-           # eg. fro = {L: {to: [fro1, fro2]}} implies to = {L-1: {fro1: [L], fro2: [L]}}
-           # useful for backpropagation
-  def __init__(self, num_inputs):
-    num_w = num_inputs + 1  #number of weights is one more than number of inputs because of bias
-  def add_node(level, fro, to):
-    if not level in levels:
-      levels[level] = {}
+  def __init__(self, num_levels):
+    pass
+  def guess(self, inputs):
+    ins = inputs
+    for lvl in xrange(len(self.levels)):
+      outs = []
+      curr_level = self.levels[lvl]
+      for i in xrange(len(curr_level)):
+        node = curr_level[i]
+        out = node.feedforward(ins)
+        outs.append(out)
+      ins = outs
+    return ins #final output
 
 # oracle for whether a pt is above line y = mx + c
 # can be linearly separated
