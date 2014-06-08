@@ -21,6 +21,13 @@ class GameState:
   def __init__(self):
     pass
 
+  def moveStr(self, move):
+    bigx   = ord(move[0]) - ord('A')
+    smallx = ord(move[1]) - ord('1')
+    bigy   = ord(move[2]) - ord('A')
+    smally = ord(move[3]) - ord('1')
+    return self.move4(bigx, smallx, bigy, smally)
+
   # make a move by specifying the big square first then the little one
   def move4(self, bigx, smallx, bigy, smally):
     x = bigx*3 + smallx
@@ -31,10 +38,13 @@ class GameState:
       return "Illegal move! Wrong small board"
     self.state[x][y] = self.turn
     win = self.checkWinSmall(big, (x,y))
+    bigWin = None
     if win != None:
       self.bigState[x/3][y/3] = win
+      bigWin = self.checkWinBig(big)
     self.turn = 1 if self.turn == 2 else 2
     self.currentBig = small
+    return bigWin
 
   def checkWin3x3(self, board, move=None):
     x = move[0]; y = move[1]
@@ -52,8 +62,7 @@ class GameState:
     return None
 
   def checkWinBig(self, move=None):
-    bigmove = (move[0] / 3, move[1] / 3)
-    return self.checkWin3x3(bigState, bigmove)
+    return self.checkWin3x3(self.bigState, move)
 
   def checkWinSmall(self, smallboard, move=None):
     small = self.selectSmall(smallboard)
@@ -157,20 +166,40 @@ class GUI:
       move = moves[0]
       moves = moves[1:]
       print(move)
-      bigx   = ord(move[0]) - ord('A')
-      smallx = ord(move[1]) - ord('1')
-      bigy   = ord(move[2]) - ord('A')
-      smally = ord(move[3]) - ord('1')
-      move = game.move4(bigx, smallx, bigy, smally)
-      if move:
-        print move
+      result = game.moveStr(move)
+      if result != None:
+        if type(result) is str:
+          print result
+        elif type(result) is int:
+          print(self.color(result)+" wins the game!")
 
 class AI:
 
-  #Basic minimax algorithm
-  # 1) randomly generate move
-  # 2) check if 
-  pass
+  outcomes = {}
+  limit = 100
+
+  # Makes a recommendation about the current game state
+  # Essentially runs explore() up to a limit of new game states then returns outcome
+  def recommend(self, game, limit=100):
+    return outcome(game)
+
+  # Retrieve best known outcomes for current state
+  #  return value is a struct:
+  #    'X' : playing this move always leads to X victory
+  #    'O' : leads to O victory
+  #    'd' : leads to a draw
+  #    all other legal moves are unexplored
+  def outcome(self, game):
+    pass
+
+  # Explores the state space starting from game if specified
+  # up to a limited number of new game states uncovered
+  # Basic minimax algorithm
+  def explore(self, game=GameState()):
+    # check if we know something about this state already
+    # if this is a terminal state (ie victory for X or O or a draw)
+    # 
+    pass
 
 gui = GUI()
 gui.main(GameState())
