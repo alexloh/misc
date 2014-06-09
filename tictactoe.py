@@ -18,6 +18,9 @@ class GameState:
   # state of big board as a 3x3. Derivable from state
   bigState = [[0 for x in range(3)] for y in range(3)]
 
+  # winner of the game, either 1, 2 or 'd' for draw. Derivable from state
+  result = None
+
   def __init__(self):
     pass
 
@@ -36,15 +39,19 @@ class GameState:
     small = (smallx, smally)
     if (self.currentBig!=None) and (big != self.currentBig):
       return "Illegal move! Wrong small board"
+    if (self.currentBig==None) and (self.bigState[bigx][bigy] != 0):
+      return "Illegal move! square has already been won"
     self.state[x][y] = self.turn
-    win = self.checkWinSmall(big, (x,y))
-    bigWin = None
+    win = self.checkWin3x3(self.selectSmall(big), small)
     if win != None:
-      self.bigState[x/3][y/3] = win
-      bigWin = self.checkWinBig(big)
+      self.bigState[bigx][bigy] = win
+      self.result = self.checkWin3x3(self.bigState, big)
     self.turn = 1 if self.turn == 2 else 2
-    self.currentBig = small
-    return bigWin
+    if self.bigState[smallx][smally] != 0:  #new small board is already won
+      self.currentBig = None
+    else:
+      self.currentBig = small
+    return self.result
 
   def checkWin3x3(self, board, move=None):
     x = move[0]; y = move[1]
@@ -55,10 +62,11 @@ class GameState:
     if board[x][0] == board[x][1] == board[x][2]:
       return board[x][0]
     #check diagonal
-    if board[0][0] == board[1][1] == board[2][2]:
-      return board[0][0]
-    if board[0][2] == board[1][1] == board[2][0]:
-      return board[0][2]
+    if board[1][1] != 0:
+      if board[0][0] == board[1][1] == board[2][2]:
+        return board[0][0]
+      if board[0][2] == board[1][1] == board[2][0]:
+        return board[0][2]
     return None
 
   def checkWinBig(self, move=None):
@@ -76,9 +84,30 @@ class GameState:
             self.state[offsetx+1][offsety:offsety+3], 
             self.state[offsetx+2][offsety:offsety+3]]
 
+  # gets all empty squares in a 3x3 board
+  # helper function for legalNext
+  def getEmpty(self, board):
+    result = []
+    for x in range(3):
+      for y in range(3):
+        if board[x][y] == 0:
+          result += [(x,y)]
+    return result
   # return list of legal moves from current state
+  #   any empty square in currentBig
+  #   or any empty square in an un-won small board
   def legalNext(self):
-    pass
+    if self.currentBig != None:
+      bigx = self.currentBig[0]
+      bigy = self.currentBig[1]
+      return [(bigx,x,bigy,+y) for (x,y) in self.getEmpty(self.selectSmall((bigx, bigy)))]
+    else:
+      results = []
+      for bigx in range(3):
+        for bigy in range(3):
+          if self.bigState[bigx][bigy] == 0:
+            results += [(bigx,x,bigy,+y) for (x,y) in self.getEmpty(self.selectSmall((bigx, bigy)))]
+      return results
 
   # return list of legal moves that could have led to current state
   # basically any empty square on the currentBig small board
@@ -148,7 +177,7 @@ class GameState:
 class GUI:
   def main(self, game):
 
-    moves = ['B2B2','B3B3','C2C2','B3B1','C2A2','B3B2']
+    moves = ['B2B2','B3B3','C2C2','B3B1','C2A2','B3B2','C3B1']
     while True:
       print("\n")
       game.render()
@@ -168,9 +197,11 @@ class GUI:
       print(move)
       result = game.moveStr(move)
       if result != None:
+        print result
         if type(result) is str:
           print result
         elif type(result) is int:
+          game.render()
           print(self.color(result)+" wins the game!")
 
 class AI:
@@ -200,6 +231,12 @@ class AI:
     # if this is a terminal state (ie victory for X or O or a draw)
     # 
     pass
+
+  #how to make exploring faster:
+  # 1. deciding which move to try next
+  #     - try most promising
+  #     - heuristics: if able to complete a small board, do it (also reduces search space)
+  #     -         or do a few sample breath-first searches to see which move gives shortest/best/etc outcome
 
 gui = GUI()
 gui.main(GameState())
